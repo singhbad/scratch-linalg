@@ -1,16 +1,15 @@
 # scratch-linalg
 
-A from-scratch linear algebra library, built as part of an 8-month
-ML Research Engineer curriculum. Every operation here is implemented
-**twice**: once in pure Python (so the mechanics are fully visible),
-and once with NumPy (so you can see and measure what a real numerical
-library buys you). No `sklearn`, no `numpy.linalg` shortcuts in the
-pure-Python versions — everything is derived and built by hand first.
+A from-scratch linear algebra library. Every operation here is
+implemented **twice**: once in pure Python (so the mechanics are
+fully visible), and once with NumPy (so you can see and measure what
+a real numerical library buys you). No `sklearn`, no `numpy.linalg`
+shortcuts in the pure-Python versions — everything is derived and
+built by hand first.
 
-This repo is the running foundation for every later lesson (PCA,
-gradient descent, neural network layers, attention) — all of it
-reduces to vectors and matrices, which is why this is Lesson 1–2 of
-the curriculum and the first thing built.
+This repo is the running foundation for later, more advanced work
+(PCA, gradient descent, neural network layers, attention) — all of
+it reduces to vectors and matrices, which is why those come first.
 
 ---
 
@@ -91,8 +90,7 @@ space. A **Matrix** is a machine that transforms vectors — and
 internally, matrix operations (`matvec`, `matmul`) are built from the
 same dot-product logic that `Vector.dot()` uses. This mirrors the real
 math: matrix-vector multiplication is just several dot products
-bundled together (see the "Lesson 2" derivation in the syllabus for
-the full reasoning).
+bundled together, row by row.
 
 ---
 
@@ -141,7 +139,7 @@ the pure-Python version which must physically rebuild the grid.
 ## Measured performance difference
 
 From `benchmarks/benchmark_vectors.py` (1,000,000-element vectors) and
-the 100×100 matrix multiply benchmark run during Lesson 2:
+a 100×100 matrix multiply benchmark:
 
 | Operation | Pure Python | NumPy | Speedup |
 |---|---|---|---|
@@ -176,13 +174,11 @@ python -m unittest discover -p "*.py" -v
 
 ---
 
-## Curriculum context
+## What comes next
 
-This repo corresponds to **Month 1: Mathematical & Statistical
-Foundations** of the full 8-month ML Research Engineer syllabus —
-specifically the `Vectors` and `Matrices` lesson references. See the
-full syllabus document for what comes next (Eigenvalues & Eigenvectors,
-SVD, Derivatives & Gradients, Probability Foundations) and how each
-piece here feeds forward into later lessons (PCA uses SVD, which uses
-matrices; neural network layers are literally `Matrix.matvec` plus a
-nonlinearity; attention scores are `Vector.dot` at scale).
+This repo currently covers **Vectors** and **Matrices**. Natural next
+additions: Eigenvalues & Eigenvectors, and SVD — both build directly
+on `Matrix`/`MatrixNP`. Looking ahead, these primitives feed forward
+into everything else: PCA is built on SVD, which is built on matrices;
+a neural network layer is literally `Matrix.matvec` plus a
+nonlinearity; attention scores are `Vector.dot` computed at scale.
