@@ -19,7 +19,7 @@ class Matrix:
     Stored as a list of rows, where each row is a list of floats.
     Every method mirrors an operation you'll later call via NumPy or
     torch.Tensor — the point is to see exactly what's happening
-    underneath every nn.Linear layer you'll use starting Month 4.
+    underneath every nn.Linear layer you'll use 
  
     Attributes:
         rows: number of rows (m)
