@@ -3,7 +3,7 @@ matrices.py — A from-scratch Matrix class implementing core linear algebra
 operations, built without any external numerical libraries.
  
 Part of: scratch-linalg (Lesson 2 — Matrices)
-Author: [you]
+Author: Badal Singh
 Purpose: Educational implementation to build first-principles intuition
          for matrix arithmetic before relying on NumPy/PyTorch.
 """
