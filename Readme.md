@@ -44,6 +44,8 @@ scratch-linalg/
 ├── eigen.py                # Eigenvalues/eigenvectors — pure Python
 ├── eigen_numpy.py            # NumPy-backed, plus production np.linalg.eig
 │
+├── pagerank.py              # PageRank built on eigen.py's power_iteration
+│
 ├── benchmarks/
 │   └── benchmark_vectors.py   # Pure Python vs NumPy speed comparison
 │
@@ -60,6 +62,7 @@ python -m unittest matrices.py -v
 python -m unittest matrices_numpy.py -v
 python -m unittest eigen.py -v
 python -m unittest eigen_numpy.py -v
+python -m unittest pagerank.py -v
 ```
 
 ---
@@ -70,16 +73,16 @@ python -m unittest eigen_numpy.py -v
                      ┌─────────────────────────┐
                      │   Real ML operations      │
                      │  (PCA, neural net layers,  │
-                     │   attention, PageRank)      │
+                     │   attention)                 │
                      └────────────┬───────────────┘
                                   │ built on top of
                                   ▼
-                  ┌───────────────────────────────┐
-                  │      Eigenvalues/Eigenvectors     │
-                  │  (eigen.py, eigen_numpy.py)         │
-                  │  power_iteration, characteristic     │
-                  │  polynomial, diagonalization           │
-                  └───────────────┬───────────────────────┘
+                  ┌───────────────────────────────┐        ┌─────────────────┐
+                  │      Eigenvalues/Eigenvectors     │─────>│    pagerank.py     │
+                  │  (eigen.py, eigen_numpy.py)         │      │  (applies power_    │
+                  │  power_iteration, characteristic     │      │   iteration to a     │
+                  │  polynomial, diagonalization           │      │   web graph)           │
+                  └───────────────┬───────────────────────┘      └─────────────────┘
                                   │ built on top of
                                   ▼
                   ┌───────────────────────────────┐
@@ -175,6 +178,30 @@ error on matrices with no real eigenvectors (e.g. rotation matrices)
 — it returns complex-valued results directly, which is what a
 production numerical library needs to do.
 
+### `pagerank.py` — pure Python, built on `eigen.py`
+
+An applied case study: Google's original ranking algorithm, reduced
+to the observation that "importance" is the stationary distribution
+of a random walk on the web graph — which is exactly the eigenvector
+for eigenvalue 1. Imports `power_iteration` from `eigen.py` directly
+and adds **no new eigenvalue logic** — only the matrix construction
+needed to model the random-surfer behavior.
+
+| Function | What it does |
+|---|---|
+| `build_transition_matrix(edges, nodes)` | column-stochastic matrix `M`; each page distributes its vote equally across its outlinks. Dangling nodes (no outlinks) spread their vote uniformly to avoid leaking probability mass |
+| `build_google_matrix(M, damping)` | `G = d*M + (1-d)/N * ones(N,N)` — blends link-following with a random jump (default `d=0.85`), guaranteeing (via the Perron-Frobenius theorem) a unique dominant eigenvalue of exactly 1 |
+| `pagerank(edges, nodes)` | full pipeline: build `G`, call `power_iteration(G)` from `eigen.py`, rescale the result to sum to 1 as a probability distribution |
+| `print_ranked(scores)` | pretty-prints pages sorted by score |
+
+Run directly to see it rank a 7-node toy graph, cross-checked against
+`np.linalg.eig` on the same matrix (exact agreement to 4 decimal
+places — see the worked example in `if __name__ == "__main__"`):
+
+```bash
+python3 pagerank.py
+```
+
 ---
 
 ## Measured performance difference
@@ -206,6 +233,12 @@ Every class ships with a `unittest` suite covering:
 - **Cross-implementation tests** — the NumPy version's tests confirm
   it produces the same numbers as the pure-Python version for shared
   inputs, catching any silent divergence between the two.
+- **Applied-correctness tests** (`pagerank.py`) — e.g. scores sum to
+  1 (it's a probability distribution), the dominant eigenvalue is
+  exactly 1 (the Perron-Frobenius guarantee), a symmetric graph
+  produces equal ranks for all nodes, and a page with more incoming
+  links ranks higher than one with fewer — sanity checks that the
+  math is actually modeling the real-world behavior it claims to.
 
 Run everything at once from the repo root:
 
@@ -217,11 +250,12 @@ python -m unittest discover -p "*.py" -v
 
 ## What comes next
 
-This repo currently covers **Vectors**, **Matrices**, and
-**Eigenvalues/Eigenvectors**. The natural next addition is **SVD**
-(Singular Value Decomposition) — it generalizes eigendecomposition to
-non-square matrices and builds directly on `eigen.py`/`eigen_numpy.py`.
-Looking further ahead: PCA is built on SVD; a neural network layer is
+This repo currently covers **Vectors**, **Matrices**,
+**Eigenvalues/Eigenvectors**, and one applied case study
+(**PageRank**). The natural next addition is **SVD** (Singular Value
+Decomposition) — it generalizes eigendecomposition to non-square
+matrices and builds directly on `eigen.py`/`eigen_numpy.py`. Looking
+further ahead: PCA is built on SVD; a neural network layer is
 literally `Matrix.matvec` plus a nonlinearity; attention scores are
 `Vector.dot` computed at scale; and the vanishing/exploding gradient
 problem in recurrent networks is explained directly by the eigenvalue
