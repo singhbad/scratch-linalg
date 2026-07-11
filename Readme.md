@@ -41,6 +41,9 @@ scratch-linalg/
 ├── matrices.py            # Matrix class — pure Python, no dependencies
 ├── matrices_numpy.py       # MatrixNP class — NumPy-backed, same interface
 │
+├── eigen.py                # Eigenvalues/eigenvectors — pure Python
+├── eigen_numpy.py            # NumPy-backed, plus production np.linalg.eig
+│
 ├── benchmarks/
 │   └── benchmark_vectors.py   # Pure Python vs NumPy speed comparison
 │
@@ -55,6 +58,8 @@ python -m unittest vectors.py -v
 python -m unittest vectors_numpy.py -v
 python -m unittest matrices.py -v
 python -m unittest matrices_numpy.py -v
+python -m unittest eigen.py -v
+python -m unittest eigen_numpy.py -v
 ```
 
 ---
@@ -64,9 +69,17 @@ python -m unittest matrices_numpy.py -v
 ```
                      ┌─────────────────────────┐
                      │   Real ML operations      │
-                     │  (neural net layers,      │
-                     │   PCA, attention, etc.)    │
+                     │  (PCA, neural net layers,  │
+                     │   attention, PageRank)      │
                      └────────────┬───────────────┘
+                                  │ built on top of
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │      Eigenvalues/Eigenvectors     │
+                  │  (eigen.py, eigen_numpy.py)         │
+                  │  power_iteration, characteristic     │
+                  │  polynomial, diagonalization           │
+                  └───────────────┬───────────────────────┘
                                   │ built on top of
                                   ▼
                   ┌───────────────────────────────┐
@@ -134,6 +147,34 @@ Same method names and behavior as `Matrix`, backed by `np.ndarray`.
 strides instead of copying data — see code comments for why), unlike
 the pure-Python version which must physically rebuild the grid.
 
+### `eigen.py` — pure Python
+
+| Function | What it does | Complexity |
+|---|---|---|
+| `characteristic_poly_2x2(A)` | derives `lambda^2 - trace*lambda + det = 0` coefficients | O(1) |
+| `solve_quadratic(a,b,c)` | quadratic formula; raises clearly if roots are complex | O(1) |
+| `eigen_2x2(A)` | full closed-form eigendecomposition, 2×2 only | O(1) |
+| `power_iteration(A)` | general iterative method: finds the dominant eigenvalue/eigenvector of any square matrix | O(n² · iterations) |
+
+The closed-form solver only works for 2×2 matrices (no general
+closed-form formula exists for eigenvalues of matrices larger than
+4×4 — a consequence of the Abel–Ruffini theorem on polynomial roots).
+`power_iteration` is the general-purpose method, and is the same core
+idea behind Google's original PageRank algorithm.
+
+### `eigen_numpy.py` — NumPy-backed
+
+| Function | What it does | Complexity |
+|---|---|---|
+| `power_iteration_np(A)` | vectorized version of `power_iteration` — identical algorithm, `A @ v` via BLAS instead of Python loops | O(n² · iterations) |
+| `eigen_np(A)` | wraps `np.linalg.eig` (QR-algorithm-based); works for **any** size matrix and returns complex eigenvalues natively instead of raising | O(n³) |
+| `diagonalize(A)` | returns `(P, D, P_inv)` such that `A = P @ D @ P_inv` — the practical realization of the diagonalization identity, useful for cheaply computing `A^k` | O(n³) |
+
+Unlike `eigen.py`'s closed-form solver, `eigen_np` doesn't raise an
+error on matrices with no real eigenvectors (e.g. rotation matrices)
+— it returns complex-valued results directly, which is what a
+production numerical library needs to do.
+
 ---
 
 ## Measured performance difference
@@ -176,9 +217,12 @@ python -m unittest discover -p "*.py" -v
 
 ## What comes next
 
-This repo currently covers **Vectors** and **Matrices**. Natural next
-additions: Eigenvalues & Eigenvectors, and SVD — both build directly
-on `Matrix`/`MatrixNP`. Looking ahead, these primitives feed forward
-into everything else: PCA is built on SVD, which is built on matrices;
-a neural network layer is literally `Matrix.matvec` plus a
-nonlinearity; attention scores are `Vector.dot` computed at scale.
+This repo currently covers **Vectors**, **Matrices**, and
+**Eigenvalues/Eigenvectors**. The natural next addition is **SVD**
+(Singular Value Decomposition) — it generalizes eigendecomposition to
+non-square matrices and builds directly on `eigen.py`/`eigen_numpy.py`.
+Looking further ahead: PCA is built on SVD; a neural network layer is
+literally `Matrix.matvec` plus a nonlinearity; attention scores are
+`Vector.dot` computed at scale; and the vanishing/exploding gradient
+problem in recurrent networks is explained directly by the eigenvalue
+spectrum of the weight matrix being applied repeatedly.
