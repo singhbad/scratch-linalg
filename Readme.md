@@ -246,7 +246,7 @@ Run everything at once from the repo root:
 python -m unittest discover -p "*.py" -v
 ```
 
----
+----
 
 ## What comes next
 
